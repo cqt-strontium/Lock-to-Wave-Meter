@@ -27,54 +27,94 @@ void print_byte(byte b, char end='\n') {
   Serial.print(end);
 }
 
+
 void write_reset_cmd() {
   // This function is for full software reset *ONLY*
-  // SPI.beginTransaction should be called outside this function
   byte byte1 = WRRST; 
-  SPI.transfer(byte1);
-  SPI.transfer((byte)0);
-  SPI.transfer((byte)0);
-}
-
-
-void write_ctrl_cmd(int cmd) {
-  // SPI.beginTransaction should be called outside this function
-  byte byte1 = WRCTR, 
-       byte2 = ((cmd & CMASK2) >> 8), 
-       byte3 = (cmd & CMASK3);
-  SPI.transfer(byte1);
-  SPI.transfer(byte2);
-  SPI.transfer(byte3);
-}
-
-
-void init_DAC(int slaveSelect=SS) {
-  pinMode(SS, OUTPUT);  // make SS a real slave
-  digitalWrite(SS, HIGH); 
-
-  delay(100); // DAC start-up
-
-  SPI.begin();
-  digitalWrite(SS, LOW);
+  
+  digitalWrite(SS, LOW); 
   SPI.beginTransaction(SPISettings(100000, MSBFIRST, SPI_MODE2));
-  // write_reset_cmd();
-  // SPI.endTransaction();
-  // delay(5);
-  // SPI.beginTransaction(SPISettings(100000, MSBFIRST, SPI_MODE2));
-  write_ctrl_cmd(CTRRST);  // always good to reset in the first place 
+  SPI.transfer(byte1);
+  SPI.transfer((byte)0);
+  SPI.transfer((byte)0);
   SPI.endTransaction();
   digitalWrite(SS, HIGH);
 }
 
 
+void write_ctrl_cmd(unsigned int cmd) {
+  byte byte1 = WRCTR, 
+       byte2 = ((cmd & CMASK2) >> 8), 
+       byte3 = (cmd & CMASK3);
+      
+  digitalWrite(SS, LOW); 
+  SPI.beginTransaction(SPISettings(100000, MSBFIRST, SPI_MODE2));
+  SPI.transfer(byte1);
+  SPI.transfer(byte2);
+  SPI.transfer(byte3);
+  SPI.endTransaction();
+  digitalWrite(SS, HIGH);
+}
+
+void print_ctrl_cmd(byte* cmd) {
+  Serial.print("Control command just read is:");
+  print_byte(cmd[0], ' ');
+  print_byte(cmd[1], ' ');
+  print_byte(cmd[2], ' ');
+  Serial.print('\n');
+}
+
+
+void read_ctrl_reg(byte *ret, int slaveSelect=SS) {
+  // See Table 14 & 15 on page 31 for the readback of control register
+  digitalWrite(SS, LOW); 
+  SPI.beginTransaction(SPISettings(100000, MSBFIRST, SPI_MODE2));
+  SPI.transfer((byte)0b1100);
+  SPI.transfer((byte)0);
+  SPI.transfer((byte)0);
+  SPI.endTransaction();
+  digitalWrite(SS, HIGH);
+
+
+  asm volatile("nop");  // this is t_{17}, see Figure 4 on page 8; the current frequency is slow enough for this to work
+
+  digitalWrite(SS, LOW); 
+  SPI.beginTransaction(SPISettings(100000, MSBFIRST, SPI_MODE2));
+  ret[0] = SPI.transfer((byte)0); // this is the "no op" operation, see Table 27 on page 33 
+  ret[1] = SPI.transfer((byte)0); 
+  ret[2] = SPI.transfer((byte)0);
+  SPI.endTransaction();
+  digitalWrite(SS, HIGH);
+}
+
+
+void init_DAC(int slaveSelect=SS) {
+  byte ctrl_cmd[3]; 
+  pinMode(SS, OUTPUT);  // make SS a real slave
+  pinMode(MISO, INPUT); 
+  digitalWrite(SS, HIGH); 
+  delay(100); // DAC start-up
+
+  SPI.begin();
+  
+  write_ctrl_cmd(CTRRST);  // always good to reset in the first place 
+  read_ctrl_reg(ctrl_cmd);
+  print_ctrl_cmd(ctrl_cmd);
+}
+
+
 void write_output_value(unsigned int val) {
   // input shift register, update DAC register directly, see page 24
+  digitalWrite(SS, LOW); 
+  SPI.beginTransaction(SPISettings(100000, MSBFIRST, SPI_MODE2));
   byte byte1 = WRDAC,
        byte2 = ((0xFF00 & val) >> 8), 
        byte3 = (0xFF & val); 
   SPI.transfer(byte1);
   SPI.transfer(byte2);
   SPI.transfer(byte3);
+  SPI.endTransaction();
+  digitalWrite(SS, HIGH);
   // print_byte(byte1);
   // print_byte(byte2);
   // print_byte(byte3);
@@ -107,22 +147,19 @@ int count_ones(unsigned int val) {
 
 
 void write_voltage(unsigned int voltage, int slaveSelect=SS) {
-  digitalWrite(SS, LOW); 
-  SPI.beginTransaction(SPISettings(100000, MSBFIRST, SPI_MODE2));
   write_output_value(voltage);
-  SPI.endTransaction();
-  digitalWrite(SS, HIGH);
+  
+  byte ctrl_cmd[3];
+  read_ctrl_reg(ctrl_cmd);
+  print_ctrl_cmd(ctrl_cmd);
 }
 
 void write_single_voltage(unsigned int voltage, int slaveSelect=SS) {
-  digitalWrite(SS, LOW); 
   Serial.println(count_ones(voltage));
-  while(1) {    
-    SPI.beginTransaction(SPISettings(400000, MSBFIRST, SPI_MODE2));
+  while(1) 
     write_output_value(voltage);
-    SPI.endTransaction();
-  }
 }
+
 
 
 unsigned int voltage = 0; 
