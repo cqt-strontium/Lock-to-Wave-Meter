@@ -9,12 +9,14 @@
 
 
 // control register RST on page 25, 26
-#define CTRRST (0b0000000000) // zero-voltage CLEAR, OVR disabled, B2C straight, ETS disabled, power-up to zeroscale， -10 to +10 range
+#define CTRRST (0b00000100101) // zero-voltage CLEAR, OVR disabled, B2C straight, ETS disabled, power-up to zeroscale， -3 to +3 range
 #define CTRRST05 (0b0000000011) // others being the same, 0 to +5 range
 #define CMASK2 ((0b111) << 8)
 #define CMASK3 (0xFF)
 
+#define DEBUG
 
+#ifdef DEBUG
 void print_byte(byte b, char end='\n') {
   // print a byte in binary representation, terminating with newline by default
   int cnt = 0; 
@@ -27,6 +29,39 @@ void print_byte(byte b, char end='\n') {
   Serial.print(end);
 }
 
+void print_ctrl_cmd(byte* cmd) {
+  Serial.print("Control command just read is:");
+  print_byte(cmd[0], ' ');
+  print_byte(cmd[1], ' ');
+  print_byte(cmd[2], ' ');
+  Serial.print('\n');
+}
+
+int count_ones(unsigned int val) {
+  // *DEBUG* use only. 
+  // Count ones in a certain 24-bit command. This correspond to the DC output of MOSI which can be measure with a multimeter. 
+  byte byte1 = WRDAC,
+       byte2 = ((0xFF00 & val) >> 8), 
+       byte3 = (0xFF & val); 
+  int ret = 0;
+  while(byte1)
+  {
+    ret += (byte1 & 1);
+    byte1 >>= 1;
+  }
+  while(byte2)
+  {
+    ret += (byte2 & 1);
+    byte2 >>= 1;
+  }
+  while(byte3)
+  {
+    ret += (byte3 & 1);
+    byte3 >>= 1;
+  }
+  return ret; 
+}
+#endif // DEBUG 
 
 void write_reset_cmd() {
   // This function is for full software reset *ONLY*
@@ -54,14 +89,6 @@ void write_ctrl_cmd(unsigned int cmd) {
   SPI.transfer(byte3);
   SPI.endTransaction();
   digitalWrite(SS, HIGH);
-}
-
-void print_ctrl_cmd(byte* cmd) {
-  Serial.print("Control command just read is:");
-  print_byte(cmd[0], ' ');
-  print_byte(cmd[1], ' ');
-  print_byte(cmd[2], ' ');
-  Serial.print('\n');
 }
 
 
@@ -98,8 +125,10 @@ void init_DAC(int slaveSelect=SS) {
   SPI.begin();
   
   write_ctrl_cmd(CTRRST);  // always good to reset in the first place 
+  #ifdef DEBUG
   read_ctrl_reg(ctrl_cmd);
   print_ctrl_cmd(ctrl_cmd);
+  #endif 
 }
 
 
@@ -115,57 +144,39 @@ void write_output_value(unsigned int val) {
   SPI.transfer(byte3);
   SPI.endTransaction();
   digitalWrite(SS, HIGH);
-  // print_byte(byte1);
-  // print_byte(byte2);
-  // print_byte(byte3);
-}
 
-int count_ones(unsigned int val) {
-  // *DEBUG* use only. 
-  // Count ones in a certain 24-bit command. This correspond to the DC output of MOSI which can be measure with a multimeter. 
-  byte byte1 = WRDAC,
-       byte2 = ((0xFF00 & val) >> 8), 
-       byte3 = (0xFF & val); 
-  int ret = 0;
-  while(byte1)
-  {
-    ret += (byte1 & 1);
-    byte1 >>= 1;
-  }
-  while(byte2)
-  {
-    ret += (byte2 & 1);
-    byte2 >>= 1;
-  }
-  while(byte3)
-  {
-    ret += (byte3 & 1);
-    byte3 >>= 1;
-  }
-  return ret; 
+  #ifdef DEBUG
+  print_byte(byte1);
+  print_byte(byte2);
+  print_byte(byte3);
+  #endif // DEBUG
 }
 
 
 void write_voltage(unsigned int voltage, int slaveSelect=SS) {
   write_output_value(voltage);
   
+  #ifdef DEBUG
   byte ctrl_cmd[3];
   read_ctrl_reg(ctrl_cmd);
   print_ctrl_cmd(ctrl_cmd);
+  #endif
 }
 
+#ifdef DEBUG
 void write_single_voltage(unsigned int voltage, int slaveSelect=SS) {
   Serial.println(count_ones(voltage));
   while(1) 
     write_output_value(voltage);
 }
+#endif // DEBUG
 
 
 
 unsigned int voltage = 0; 
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   Serial.setTimeout(1);
   voltage = 0;
   init_DAC();
@@ -178,14 +189,16 @@ void loop() {
   {
     byte incoming = Serial.read();
     if(incoming == '#') {
+      #ifdef DEBUG
       Serial.print("Voltage read: ");
-      Serial.print(voltage / 65536. * 20 - 10.);
-      // Uncomment if output range is 0-5V
-      // Serial.print(voltage / 65536. * 5);
+      Serial.print(voltage / 65536. * 6. - 3.);
       Serial.println(" V");
       write_voltage(voltage); 
       Serial.println("Write finished!");
       Serial.flush();
+      #else
+      write_voltage(voltage);
+      #endif // DEBUG
       voltage = 0; 
     }
     else if (incoming >= '0' && incoming <= '9'){
