@@ -119,23 +119,6 @@ void read_ctrl_reg(byte *ret, int slaveSelect) {
 }
 
 
-void init_DAC(int slaveSelect=SS) {
-  byte ctrl_cmd[3]; 
-  pinMode(slaveSelect, OUTPUT);  // make SS a real slave
-  pinMode(MISO, INPUT); 
-  digitalWrite(slaveSelect, HIGH); 
-  delay(100); // DAC start-up
-
-  SPI.begin();
-  
-  write_ctrl_cmd(CTRRST, slaveSelect);  // always good to reset in the first place 
-  asm volatile("nop");
-  delay(100);
-  #ifdef DEBUG
-  read_ctrl_reg(ctrl_cmd, slaveSelect);
-  print_ctrl_cmd(ctrl_cmd);
-  #endif 
-}
 
 
 void write_output_value(unsigned int val, int slaveSelect) {
@@ -196,12 +179,33 @@ void write_single_voltage(unsigned int voltage, int slaveSelect=SS) {
 }
 #endif // DEBUG
 
-
+#ifdef DEBUG
 #ifndef TWO_COMPLEMENT
 unsigned int voltage = 0; 
 #else
 int voltage = 0;
 #endif // TWO_COMPLEMENT
+#endif // DEBUG
+
+void init_DAC(int slaveSelect=SS) {
+  byte ctrl_cmd[3]; 
+  pinMode(slaveSelect, OUTPUT);  // make SS a real slave
+  pinMode(MISO, INPUT); 
+  digitalWrite(slaveSelect, HIGH); 
+  delay(100); // DAC start-up
+
+  SPI.begin();
+  
+  write_ctrl_cmd(CTRRST, slaveSelect);  // always good to reset in the first place 
+  asm volatile("nop");
+
+  write_voltage((unsigned int)0);  // fix output to 0 for safety's sake 
+
+  #ifdef DEBUG
+  read_ctrl_reg(ctrl_cmd, slaveSelect);
+  print_ctrl_cmd(ctrl_cmd);
+  #endif 
+}
 
 void setup() {
   Serial.begin(115200);
@@ -215,12 +219,14 @@ void setup() {
 void loop() {
   Serial.print('a');
   
+  size_t byte_cnt; 
   byte bytes[2];
-  Serial.readBytes(bytes, 2);
+  byte_cnt = Serial.readBytes(bytes, 2);
+  if (byte_cnt < 2) 
+    return;  // otherwise uninitialised bytes array might output crazy voltage. 
   
+  #ifdef DEBUG  
   voltage = ((bytes[0] << 8) | bytes[1]);
-  
-  #ifdef DEBUG
   Serial.print("Voltage read: ");
     #ifdef TWO_COMPLEMENT
     Serial.print(voltage / 65536. * 6);
