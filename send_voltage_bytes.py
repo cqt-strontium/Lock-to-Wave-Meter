@@ -5,7 +5,7 @@ def get_line_msg(ser):
     return ser.readline().decode('ansi') 
 
 
-def send_voltage(ser, voltage): 
+def send_voltage(ser, voltage, readback=False): 
     '''
     Send voltage (between -10 and +10) to Arduino through Serial object ser
     '''
@@ -16,10 +16,11 @@ def send_voltage(ser, voltage):
         
     ser.write(number.to_bytes(2, 'big', signed=True))
 
-    time.sleep(.02)  # hold on a while for the Arduino reply
-    while ser.in_waiting:
-        print(get_line_msg(ser).strip())  # remove unwanted newline characters
-        time.sleep(.02)  # hold on a while in case there's multiple lines coming 
+    if readback:
+        time.sleep(.02)  # hold on a while for the Arduino reply
+        while ser.in_waiting:
+            print(get_line_msg(ser).strip())  # remove unwanted newline characters
+            time.sleep(.02)  # hold on a while in case there's multiple lines coming 
 
 if __name__ == '__main__': 
     ser = serial.Serial('COM4', 115200, timeout=1) 
@@ -37,5 +38,5 @@ if __name__ == '__main__':
             
     print('Arduino is ready. ')
     while True:
-        send_voltage(ser, float(input('Input your voltage:')))
+        send_voltage(ser, float(input('Input your voltage:')), True)
         
