@@ -1,7 +1,5 @@
 #include <SPI.h>
 
-#define SS 10  // This seems to be defined in pins_arduino.h 
-
 #define WRDAC (0b0011) // Table 9 on page 23
 #define WRCTR (0b00000100) // Table 11 on page 24, 25
 #define WRRST (0x0F) // Table 26 on page 33
@@ -34,29 +32,6 @@ void write_ctrl_cmd(unsigned int cmd, int slaveSelect) {
 }
 
 
-void read_ctrl_reg(byte *ret, int slaveSelect) {
-  // See Table 14 & 15 on page 31 for the readback of control register
-  digitalWrite(slaveSelect, LOW); 
-  SPI.beginTransaction(SPISettings(100000, MSBFIRST, SPI_MODE2));
-  SPI.transfer((byte)0b1100);
-  SPI.transfer((byte)0);
-  SPI.transfer((byte)0);
-  SPI.endTransaction();
-  digitalWrite(slaveSelect, HIGH);
-
-
-  asm volatile("nop");  // this is t_{17}, see Figure 4 on page 8; the current frequency is slow enough for this to work
-
-  digitalWrite(slaveSelect, LOW); 
-  SPI.beginTransaction(SPISettings(100000, MSBFIRST, SPI_MODE2));
-  ret[0] = SPI.transfer((byte)0); // this is the "no op" operation, see Table 27 on page 33 
-  ret[1] = SPI.transfer((byte)0); 
-  ret[2] = SPI.transfer((byte)0);
-  SPI.endTransaction();
-  digitalWrite(slaveSelect, HIGH);
-}
-
-
 void write_output_value(unsigned int val, int slaveSelect=SS) {
   // input shift register, update DAC register directly, see page 24
   digitalWrite(slaveSelect, LOW); 
@@ -84,9 +59,7 @@ void write_bytes(byte* bytes, int slaveSelect=SS) {
 
 
 
-
 void init_DAC(int slaveSelect=SS) {
-  byte ctrl_cmd[3]; 
   pinMode(slaveSelect, OUTPUT);  // make SS a real slave
   pinMode(MISO, INPUT); 
   digitalWrite(slaveSelect, HIGH); 
@@ -117,4 +90,3 @@ void loop() {
     write_bytes(bytes);    
   }
 }
-
