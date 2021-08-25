@@ -1,12 +1,12 @@
 import ctypes
 from ctypes import cdll
 
-def getWaveLengthAt(channel):
+def getWaveLengthAt():
     '''
     Sample call: 
-    1. wl = getWaveLengthAt(8)()
-    2. getWaveLength = getWaveLengthAt(8)
-       wl = getWaveLength()
+    1. wl = getWaveLengthAt()(8)
+    2. getWaveLength = getWaveLengthAt()
+       wl = getWaveLength(8)
     '''
 
 
@@ -15,13 +15,13 @@ def getWaveLengthAt(channel):
 
     #Read wavelength
     wm_dll.GetWavelengthNum.restype = ctypes.c_double
-    return lambda: wm_dll.GetWavelengthNum(ctypes.c_long(channel), ctypes.c_double(0))
+    return lambda ch: wm_dll.GetWavelengthNum(ctypes.c_long(ch), ctypes.c_double(0))
     
 if __name__ == '__main__':
     import time 
     channel = 8
-    getWaveLength = getWaveLengthAt(channel)
-    wl = getWaveLength()
+    getWaveLength = getWaveLengthAt()
+    wl = getWaveLength(8)
     for i in range(10):
         print(wl)
         time.sleep(2) 
