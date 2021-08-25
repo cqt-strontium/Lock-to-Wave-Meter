@@ -1,21 +1,19 @@
 import time
-
-
-from time import perf_counter
 from send_voltage_bytes import *
 
-from get_comport import get_com_port
-
 import numpy as np
+import time 
+from tqdm import tqdm
 
 if __name__ == '__main__': 
-    # ser = setup_arduino_port(get_com_port())
-    ser = setup_arduino_port('COM4')
+    ser = setup_arduino_port('COM4')  # this is tested on local computer, so COM port is fixed 
     
     print('Arduino is ready. ')
-    input()
+    input()  
+    f = open('loglog.txt', 'w')
     while True:
-        for voltage in np.linspace(-3,3,20):
+        for voltage in tqdm(np.linspace(-3,3,100)):
             send_voltage(ser, voltage, False)
-            print(voltage)
-            time.sleep(2)
+            f.write('{}, {}, {}\n'.format(voltage, time.perf_counter(), time.time()))
+            time.sleep(.1)
+            
