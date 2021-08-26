@@ -54,10 +54,13 @@ class PIDController():
         '''
         if not self.error_buffer:
             return self.get_wl()
-        wl = self.get_wl()
-        while wl - self.set_wavelength == self.error_buffer[-1]: 
+        ret = -1.  # is underexposed, the wavemeter would return -5 which is unreasonable 
+        while ret < 0. :
             wl = self.get_wl()
-        return wl 
+            while wl - self.set_wavelength == self.error_buffer[-1]: 
+                wl = self.get_wl()
+            ret = wl
+        return ret 
 
 
     def write_dac(self, voltage):
