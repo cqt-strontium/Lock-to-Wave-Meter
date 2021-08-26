@@ -3,7 +3,7 @@ from collections.abc import Iterable
 
 
 class OnlineFigure():
-    def __init__(self, x=None, y=None):
+    def __init__(self, x=None, y=None, pause=.5):
         def construct_lst(arr):
             if isinstance(arr, Iterable):
                 ret = [_ for _ in arr]
@@ -17,6 +17,7 @@ class OnlineFigure():
 
         self.x = construct_lst(x)
         self.y = construct_lst(y)
+        self.pause = pause
         if len(self.x) != len(self.y):
             raise Exception('Unequal length in x and y arrays')
 
@@ -25,7 +26,7 @@ class OnlineFigure():
 
     def display(self):
         self.line.set_data(self.x, self.y)
-        plt.pause(1e-9)
+        plt.pause(self.pause)
 
     def append(self, new_x, new_y):
         self.x.append(new_x)

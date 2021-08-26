@@ -5,11 +5,12 @@ from time import perf_counter
 from send_voltage_bytes import send_voltage, setup_arduino_port
 from scipy.integrate import trapz
 from get_comport import get_com_port
-
+from online_figure import OnlineFigure
+from logger import Logger 
 
 class PIDController():
     fake_read_wlm_pos = -1
-    def __init__(self, channel, port, wavelength=None, kp=1., ki=1., kd=1., buffer_length=10, offline=False):
+    def __init__(self, channel, port, wavelength=None, kp=-20., ki=-20., kd=-20., buffer_length=10, offline=False):
         self.kp = kp
         self.ki = ki
         self.kd = kd
@@ -19,28 +20,36 @@ class PIDController():
         self.time_buffer = deque()  # records the time stamp when a measurement is done
         
         if offline:    
-            self.read_wlm = self.fake_read_wlm
+            # self.read_wlm = self.fake_read_wlm
             self.write_dac = self.fake_write_dac
         else:
             self.ser = setup_arduino_port(port)
         
-        self.get_wl = getWaveLengthAt()
+        self.get_wl = getWaveLengthAt(channel)
         if not wavelength:
-            wavelength = self.read_wlm()
+            wavelength = self.get_wl()
         self.set_wavelength = wavelength
         
         for _ in range(buffer_length):
             error = self.read_wlm() - self.set_wavelength
             self.error_buffer.append(error)
             self.time_buffer.append(perf_counter())
-
+            
+        self.fig = OnlineFigure(self.time_buffer, self.error_buffer)
+        self.fig.ax.set_title(r'Target wavelength $\lambda=%.6f\,\mathrm{nm}$'%self.set_wavelength)
+        self.fig.ax.set_xlabel(r'Time elapsed $t\,/\,\mathrm{s}$')
+        self.fig.ax.set_ylabel(r'Error $e\,/\,\mathrm{nm}$')
+        self.logger = Logger(list(zip(self.error_buffer, self.time_buffer)))
+        
     def read_wlm(self):
         '''
         Returns the wavelength at the moment
         '''
-        wl = self.get_wl(self.channel)
+        if not self.error_buffer:
+            return self.get_wl()
+        wl = self.get_wl()
         while wl - self.set_wavelength == self.error_buffer[-1]: 
-            wl = self.get_wl(self.channel)
+            wl = self.get_wl()
         return wl 
 
     def fake_read_wlm(self):
@@ -88,24 +97,23 @@ class PIDController():
         self.time_buffer.popleft()
         self.error_buffer.popleft()
             
+        self.fig.append(self.time_buffer[-1], self.error_buffer[-1])
         
-        print(self.kp * error)
-        print(self.ki * trapz(self.error_buffer, self.time_buffer) /
-            (self.time_buffer[-1] - self.time_buffer[0]))
-        print(self.kd * (self.error_buffer[-2] - self.error_buffer[-1]
-                         ) / (self.time_buffer[-2] - self.time_buffer[-1]))
-        print()
-        # self.write_dac(
-        #     self.kp * error
-        #     + self.ki * trapz(self.error_buffer, self.time_buffer) /
-        #     (self.time_buffer[-1] - self.time_buffer[0])
-        #     + self.kd * (self.error_buffer[-2] - self.error_buffer[-1]
-        #                  ) / (self.time_buffer[-2] - self.time_buffer[-1])
-        # )
+        self.logger.log([self.time_buffer[-1], self.error_buffer[-1], self.kp * error, self.ki * trapz(self.error_buffer, self.time_buffer) /
+            (self.time_buffer[-1] - self.time_buffer[0]), self.kd * (self.error_buffer[-2] - self.error_buffer[-1]
+                         ) / (self.time_buffer[-2] - self.time_buffer[-1])])
+        
+        self.write_dac(
+            self.kp * error
+            + self.ki * trapz(self.error_buffer, self.time_buffer) /
+            (self.time_buffer[-1] - self.time_buffer[0])
+            + self.kd * (self.error_buffer[-2] - self.error_buffer[-1]
+                         ) / (self.time_buffer[-2] - self.time_buffer[-1])
+        )
 
 
 # pc = PIDController(8, get_com_port())
-pc = PIDController(8, "COM4", offline=True)
+pc = PIDController(7, "COM56", offline=False)
 while True:
     pc.loop()
     time.sleep(.05)

@@ -12,6 +12,7 @@ class Logger():
     def log(self, line):
         self.file.write(', '.join(str(_) for _ in line))
         self.file.write('\n')
+        self.file.flush()
 
 
 
