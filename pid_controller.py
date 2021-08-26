@@ -12,18 +12,14 @@ from scipy.interpolate import root_scalar
 
 
 class PIDController():
-    fake_read_wlm_pos = -1
-    def __init__(self, channel, port, wavelength=None, kp=-20., ki=-20., kd=-20., buffer_length=10, offline=False):
+    def __init__(self, channel, port, wavelength=None, kp=-20., ki=-20., kd=-20., buffer_length=10):
         self.kp = kp
         self.ki = ki
         self.kd = kd
         self.channel = channel
         self.port = port
-        if offline:    
-            # self.read_wlm = self.fake_read_wlm
-            self.write_dac = self.fake_write_dac
-        else:
-            self.ser = setup_arduino_port(port)
+        
+        self.ser = setup_arduino_port(port)
         
         self.get_wl = getWaveLengthAt(channel)
         if not wavelength:
@@ -63,38 +59,12 @@ class PIDController():
             wl = self.get_wl()
         return wl 
 
-    def fake_read_wlm(self):
-        data = [707.2007608,
-                707.2007595,
-                707.2007597,
-                707.2007611,
-                707.2007597,
-                707.2007595,
-                707.2007595,
-                707.2007578,
-                707.2007582,
-                707.2007582,
-                707.2007602,
-                707.200759,
-                707.2007595,
-                707.2007586,
-                707.200759,
-                707.2007596,
-                707.2007582,
-                707.2007613,
-            ]
-        PIDController.fake_read_wlm_pos += 1 
-        return data[PIDController.fake_read_wlm_pos]
-
 
     def write_dac(self, voltage):
         '''
         Write to DAC device through Arduino 
         '''
         send_voltage(self.ser, voltage)
-
-    def fake_write_dac(self, voltage):
-        print(voltage)
 
 
     def need_calibration(self, threshold=5e-5):
