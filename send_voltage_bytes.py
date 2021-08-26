@@ -4,6 +4,9 @@ import time
 def get_line_msg(ser):
     return ser.readline().decode('ansi') 
 
+def get_msg(ser):
+    return ser.read().decode('ansi') 
+
 
 def send_voltage(ser, voltage, readback=False): 
     '''
@@ -15,15 +18,16 @@ def send_voltage(ser, voltage, readback=False):
         raise Exception('Invalid input')
         
     ser.write(number.to_bytes(2, 'big', signed=True))
-
+    
     if readback:
         time.sleep(.02)  # hold on a while for the Arduino reply
         while ser.in_waiting:
             print(get_line_msg(ser).strip())  # remove unwanted newline characters
             time.sleep(.02)  # hold on a while in case there's multiple lines coming 
 
-if __name__ == '__main__': 
-    ser = serial.Serial('COM4', 115200, timeout=1) 
+
+def setup_arduino_port(port, baud=115200, timeout=1):
+    ser = serial.Serial(port, baud, timeout=timeout) 
     
     # Arduino will send back "Arduino setup finished!" once it's all set
     while True: 
@@ -35,7 +39,11 @@ if __name__ == '__main__':
                 print(msg.strip())
             if msg.find('Arduino') + 1: 
                 break
+    return ser
             
+
+if __name__ == '__main__': 
+    ser = setup_arduino_port('COM4')
     print('Arduino is ready. ')
     while True:
         send_voltage(ser, float(input('Input your voltage:')), True)
