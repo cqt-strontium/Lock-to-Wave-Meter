@@ -1,11 +1,15 @@
 import time 
 
 class Logger():
-    def __init__(self, data=None, fname=None):
+    def __init__(self, data=None, fname=None, header=None):
         if not fname:
             fname = 'log@%s.txt'%time.strftime("%Y-%m-%d-%H%M%S", time.localtime())
+        
         self.file = open(fname, 'w') 
 
+        if header:
+            self.file.write(header)
+            
         for line in data: 
             self.log(line)
     

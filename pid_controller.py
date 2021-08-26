@@ -4,11 +4,8 @@ from collections import deque
 from time import perf_counter
 from send_voltage_bytes import send_voltage, setup_arduino_port
 from scipy.integrate import trapz
-from get_comport import get_com_port
-from online_figure import OnlineFigure
 from logger import Logger 
-from calibrator import Calibrator 
-from scipy.interpolate import root_scalar 
+
 
 
 class PIDController():
@@ -28,15 +25,9 @@ class PIDController():
         
         self.buffer_length = buffer_length
         self.setup_buffer()
-        self.offset = 0. 
+        
 
-        self.fig = OnlineFigure(self.time_buffer, self.error_buffer)
-        self.fig.ax.set_title(r'Target wavelength $\lambda_0=%.6f\,\mathrm{nm}$'%self.set_wavelength)
-        self.fig.ax.set_xlabel(r'Time elapsed $t\,/\,\mathrm{s}$')
-        self.fig.ax.set_ylabel(r'Error $e=\lambda-\lambda_0\,/\,\mathrm{nm}$')
-
-
-        self.logger = Logger(list(zip(self.time_buffer, self.error_buffer)))
+        self.logger = Logger(list(zip(self.time_buffer, self.error_buffer)), header=r'Target wavelength %.6f nm\n$'%self.set_wavelength)
     
 
     def setup_buffer(self):
@@ -70,17 +61,6 @@ class PIDController():
         send_voltage(self.ser, voltage)
 
 
-    def need_calibration(self, threshold=5e-5):
-        return abs(self.error_buffer[-1]) > threshold 
-
-
-    def calibrate(self):
-        cl = Calibrator(self.write_dac, self.read_wlm) 
-        calibrated_function = cl.calibrate()
-        self.offset = root_scalar(lambda _: calibrated_function(_) -self.set_wavelength - self.error_buffer[-1], bracket=[-1, 1])
-        self.write_dac(self.offset)
-        self.setup_buffer()
-
 
     def loop(self):
         '''
@@ -93,15 +73,12 @@ class PIDController():
         self.time_buffer.popleft()
         self.error_buffer.popleft()
             
-        self.fig.append(self.time_buffer[-1], self.error_buffer[-1])
-        
         self.logger.log([self.time_buffer[-1], self.error_buffer[-1], self.kp * error, self.ki * trapz(self.error_buffer, self.time_buffer) /
             (self.time_buffer[-1] - self.time_buffer[0]), self.kd * (self.error_buffer[-2] - self.error_buffer[-1]
                          ) / (self.time_buffer[-2] - self.time_buffer[-1])])
         
         self.write_dac(
-            self.offset
-            + self.kp * error
+            self.kp * error
             + self.ki * trapz(self.error_buffer, self.time_buffer) /
             (self.time_buffer[-1] - self.time_buffer[0])
             + self.kd * (self.error_buffer[-2] - self.error_buffer[-1]

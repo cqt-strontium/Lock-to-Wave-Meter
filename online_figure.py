@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 from collections.abc import Iterable
+import matplotlib as mpl 
 
+mpl.rc('font', size=6)  # should be smaller so as others can see the computer 
 
 class OnlineFigure():
     def __init__(self, x=None, y=None, pause=.5):
@@ -21,8 +23,26 @@ class OnlineFigure():
         if len(self.x) != len(self.y):
             raise Exception('Unequal length in x and y arrays')
 
-        self.fig, self.ax = plt.subplots()
+        self.fig, self.ax = plt.subplots(figsize=(4,3))  # smaller for other users' ease 
+
+
         self.line,  = self.ax.plot(self.x, self.y, '-')
+
+    def rescale_y(self):
+        ymin = min(self.y)
+        if ymin > 0:
+            ymin *= .9
+        else:
+            ymin *= 1.1
+        ymax = max(self.y)
+        if ymax > 0:
+            ymax *= 1.1
+        else:
+            ymax *= .9
+        self.ax.set_ylim(ymin, ymax)
+        self.ax.ticklabel_format(axis='y', useOffset=False, style='sci', scilimits=(0,0))
+        plt.pause(self.pause)
+
 
     def display(self):
         self.line.set_data(self.x, self.y)
@@ -54,6 +74,17 @@ class OnlineFigure():
         self.display()
 
 
+    def appendln(self, new_xs, new_ys):
+        self.x.extend(new_xs) 
+        self.y.extend(new_ys) 
+        _, xmax = self.ax.get_xlim()
+        if new_xs[-1] > xmax:
+            xmax = 1.1 * new_xs[-1]
+            self.ax.set_xlim(right=xmax)
+
+        self.rescale_y()
+
+        self.display()
 if __name__ == '__main__':
     of = OnlineFigure()
     from random import random
