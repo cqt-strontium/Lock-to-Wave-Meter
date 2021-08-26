@@ -7,6 +7,9 @@ from scipy.integrate import trapz
 from get_comport import get_com_port
 from online_figure import OnlineFigure
 from logger import Logger 
+from calibrator import Calibrator 
+from scipy.interpolate import root_scalar 
+
 
 class PIDController():
     fake_read_wlm_pos = -1
@@ -16,9 +19,6 @@ class PIDController():
         self.kd = kd
         self.channel = channel
         self.port = port
-        self.error_buffer = deque()
-        self.time_buffer = deque()  # records the time stamp when a measurement is done
-        
         if offline:    
             # self.read_wlm = self.fake_read_wlm
             self.write_dac = self.fake_write_dac
@@ -30,17 +30,26 @@ class PIDController():
             wavelength = self.get_wl()
         self.set_wavelength = wavelength
         
-        for _ in range(buffer_length):
-            error = self.read_wlm() - self.set_wavelength
-            self.error_buffer.append(error)
-            self.time_buffer.append(perf_counter())
-            
+        self.buffer_length = buffer_length
+        self.setup_buffer()
+        self.offset = 0. 
+
         self.fig = OnlineFigure(self.time_buffer, self.error_buffer)
         self.fig.ax.set_title(r'Target wavelength $\lambda_0=%.6f\,\mathrm{nm}$'%self.set_wavelength)
         self.fig.ax.set_xlabel(r'Time elapsed $t\,/\,\mathrm{s}$')
         self.fig.ax.set_ylabel(r'Error $e=\lambda-\lambda_0\,/\,\mathrm{nm}$')
         self.logger = Logger(list(zip(self.error_buffer, self.time_buffer)))
+    
+
+    def setup_buffer(self):
+        self.error_buffer = deque()
+        self.time_buffer = deque()  # records the time stamp when a measurement is done
         
+        for _ in range(self.buffer_length):
+            error = self.read_wlm() - self.set_wavelength
+            self.error_buffer.append(error)
+            self.time_buffer.append(perf_counter())
+
     def read_wlm(self):
         '''
         Returns the wavelength at the moment
@@ -85,7 +94,19 @@ class PIDController():
     def fake_write_dac(self, voltage):
         print(voltage)
 
-        
+
+    def need_calibration(self, threshold=5e-5):
+        return abs(self.error_buffer[-1]) > threshold 
+
+
+    def calibrate(self):
+        cl = Calibrator(self.write_dac, self.read_wlm) 
+        calibrated_function = cl.calibrate()
+        self.offset = root_scalar(lambda _: calibrated_function(_) -self.set_wavelength - self.error_buffer[-1], bracket=[-1, 1])
+        self.write_dac(self.offset)
+        self.setup_buffer()
+
+
     def loop(self):
         '''
         Main PID loop
@@ -104,7 +125,8 @@ class PIDController():
                          ) / (self.time_buffer[-2] - self.time_buffer[-1])])
         
         self.write_dac(
-            self.kp * error
+            self.offset
+            + self.kp * error
             + self.ki * trapz(self.error_buffer, self.time_buffer) /
             (self.time_buffer[-1] - self.time_buffer[0])
             + self.kd * (self.error_buffer[-2] - self.error_buffer[-1]
@@ -116,4 +138,6 @@ class PIDController():
 pc = PIDController(7, "COM56", offline=False)
 while True:
     pc.loop()
+    # if pc.need_calibration():
+    #     pc.calibrate()
     time.sleep(.05)
