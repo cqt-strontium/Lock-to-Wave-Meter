@@ -36,9 +36,9 @@ class PIDController():
             self.time_buffer.append(perf_counter())
             
         self.fig = OnlineFigure(self.time_buffer, self.error_buffer)
-        self.fig.ax.set_title(r'Target wavelength $\lambda=%.6f\,\mathrm{nm}$'%self.set_wavelength)
+        self.fig.ax.set_title(r'Target wavelength $\lambda_0=%.6f\,\mathrm{nm}$'%self.set_wavelength)
         self.fig.ax.set_xlabel(r'Time elapsed $t\,/\,\mathrm{s}$')
-        self.fig.ax.set_ylabel(r'Error $e\,/\,\mathrm{nm}$')
+        self.fig.ax.set_ylabel(r'Error $e=\lambda-\lambda_0\,/\,\mathrm{nm}$')
         self.logger = Logger(list(zip(self.error_buffer, self.time_buffer)))
         
     def read_wlm(self):
@@ -90,7 +90,7 @@ class PIDController():
         '''
         Main PID loop
         '''
-        error = self.set_wavelength - self.read_wlm()
+        error = self.read_wlm() - self.set_wavelength
 
         self.time_buffer.append(perf_counter())
         self.error_buffer.append(error)
