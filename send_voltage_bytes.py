@@ -14,8 +14,10 @@ def send_voltage(ser, voltage, readback=False):
     '''
 
     number = int(voltage / 6. * 65535)
-    if number > 32767 or number < -32768:
-        raise Exception('Invalid input')
+    if number > 32767:
+        number = 32767
+    if number < -32768:
+        number = -32768
         
     ser.write(number.to_bytes(2, 'big', signed=True))
     
