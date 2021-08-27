@@ -6,13 +6,20 @@ import time
 import numpy as np
 from matplotlib.widgets import Cursor
 import matplotlib.pyplot as plt 
+import matplotlib as mpl 
+from random import shuffle
+
+from numpy.core.fromnumeric import argsort
+
+
+mpl.rc('font', size=6)  
 
 def ls_reg(xarr, yarr):
     xmean = np.mean(xarr)
     ymean = np.mean(yarr)
     slope = np.sum((xarr-xmean)*(yarr-ymean)) / np.sum((xarr-xmean)**2) 
     intercept = ymean - slope * xmean 
-    print('Intercept is', intercept)
+    print('Slope is', slope)
     return lambda _: slope * _ + intercept 
 
 
@@ -24,21 +31,28 @@ class Calibrator:
     def calibrate(self, num=100, repeat=1):
         v = np.linspace(-3,3,num)
         wl = []
-
+        rnd_index = list(range(len(v)))
+        shuffle(rnd_index)
+        v = v[rnd_index]
+        
         for voltage in v:
             self.write_dac(voltage)
-            time.sleep(.1)
+            time.sleep(.2)
             wl.append(self.read_wlm())
         
-        # wlv = interp1d(v, wl) 
         wl = np.array(wl)
-        self.fig, self.ax = plt.subplots()
-        self.ax.plot(v, wl)
+
+        
+        sorted_index = argsort(v)
+        v, wl = v[sorted_index], wl[sorted_index]
+
+        self.fig, self.ax = plt.subplots(figsize=(4,3))
+        self.ax.plot(v, wl, '+')
         x1, x2 = self.retrieve_x_limit()
         mask = (v > x1) & (v < x2) 
         reg_func = ls_reg(v[mask], wl[mask])
 
-        _, ax = plt.subplots()
+        _, ax = plt.subplots(figsize=(4,3))
         ax.plot(v, wl)
         ax.plot([.9*x1, 1.1*x2], [reg_func(.9*x1), reg_func(1.1*x2)], '--')
         plt.show()
