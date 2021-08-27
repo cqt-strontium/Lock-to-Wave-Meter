@@ -22,11 +22,22 @@ def ls_reg(xarr, yarr):
 
 
 class Calibrator: 
-    def __init__(self, write_dac, read_wlm):
+    def __init__(self, write_dac, get_wl):
         self.write_dac = write_dac
-        self.read_wlm = read_wlm 
+        self.last_read = -1
+
+    def read_wlm(self):
+        ret = -1.  # is underexposed, the wavemeter would return -5 which is unreasonable 
+        while ret < 0. :
+            wl = self.get_wl()
+            while wl == self.last_read: 
+                wl = self.get_wl()
+            ret = wl
+        self.last_read = ret 
+        return ret 
+
     
-    def calibrate(self, num=100, randomize = False, repeat=1):
+    def calibrate(self, num=100, randomize=False, repeat=1):
         v = np.linspace(-3,3,num)
         wl = []
 
