@@ -88,8 +88,15 @@ class PIDController():
 
 # pc = PIDController(8, get_com_port())
 pc = PIDController(7, "COM56", offline=False)
+wl = pc.set_wavelength
+hp, offset = 200, 1e-4
 while True:
-    pc.loop()
-    # if pc.need_calibration():
-    #     pc.calibrate()
-    time.sleep(.05)
+    pc.set_wavelength = wl + offset
+    for _ in range(hp):
+        pc.loop()
+        time.sleep(.05)
+    
+    pc.set_wavelength = wl - offset
+    for _ in range(hp):
+        pc.loop()
+        time.sleep(.05)
