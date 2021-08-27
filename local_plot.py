@@ -1,10 +1,17 @@
 import numpy as np
+from numpy.core.defchararray import split
 from online_figure import OnlineFigure
 from time import sleep 
-
+import os.path 
+import os 
 
 def read_wavelength(fname):
     return float(np.genfromtxt(fname, delimiter=' ', max_rows=1, usecols=[2]))
+
+def get_latest_file():
+    return sorted([f for f in os.listdir('.') if os.path.isfile(f) if f.startswith('log@')], 
+                  key=lambda f:''.join(f[4:-4].split('-'))
+           )[-1]
 
 class LocalPlotter():
     def __init__(self, fname):
@@ -28,8 +35,12 @@ class LocalPlotter():
         self.last_line = len(data) 
     
     
+path = './'
 
-lp = LocalPlotter('test')
+fname = input('Enter file name (or press enter if use latest): \n').strip()
+if not fname: 
+    fname = get_latest_file()
+lp = LocalPlotter(os.path.join(path, fname))
 while True:
     lp.update()
     sleep(1)
