@@ -9,8 +9,6 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl 
 from random import shuffle
 
-from numpy.core.fromnumeric import argsort
-
 
 mpl.rc('font', size=6)  
 
@@ -28,13 +26,15 @@ class Calibrator:
         self.write_dac = write_dac
         self.read_wlm = read_wlm 
     
-    def calibrate(self, num=100, repeat=1):
+    def calibrate(self, num=100, randomize = False, repeat=1):
         v = np.linspace(-3,3,num)
         wl = []
-        rnd_index = list(range(len(v)))
-        shuffle(rnd_index)
-        v = v[rnd_index]
-        
+
+        if randomize:
+            rnd_index = list(range(len(v)))
+            shuffle(rnd_index)
+            v = v[rnd_index]
+            
         for voltage in v:
             self.write_dac(voltage)
             time.sleep(.2)
@@ -42,9 +42,9 @@ class Calibrator:
         
         wl = np.array(wl)
 
-        
-        sorted_index = argsort(v)
-        v, wl = v[sorted_index], wl[sorted_index]
+        if randomize:
+            sorted_index = np.argsort(v)
+            v, wl = v[sorted_index], wl[sorted_index]
 
         self.fig, self.ax = plt.subplots(figsize=(4,3))
         self.ax.plot(v, wl, '+')
