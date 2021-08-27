@@ -27,7 +27,7 @@ class PIDController():
         self.setup_buffer()
         
 
-        self.logger = Logger(list(zip(self.time_buffer, self.error_buffer)), header=r'Target wavelength %.6f nm\n$'%self.set_wavelength)
+        self.logger = Logger(list(zip(self.time_buffer, self.error_buffer)), header=r'Target wavelength %.6f nm\nKp=%.1f, Ki=%.1f, Kd=%.1f\n$'%(self.set_wavelength, self.kp, self.ki, self.kd))
     
 
     def setup_buffer(self):
