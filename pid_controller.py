@@ -5,7 +5,7 @@ from time import perf_counter
 from send_voltage_bytes import send_voltage, setup_arduino_port
 from scipy.integrate import trapz
 from logger import Logger 
-
+from signal_test import eavesdropper, Process
 
 
 class PIDController():
@@ -86,17 +86,37 @@ class PIDController():
         )
 
 
-# pc = PIDController(8, get_com_port())
-pc = PIDController(7, "COM56", offline=False)
-wl = pc.set_wavelength
-hp, offset = 200, 1e-4
-while True:
-    pc.set_wavelength = wl + offset
-    for _ in range(hp):
-        pc.loop()
-        time.sleep(.05)
-    
-    pc.set_wavelength = wl - offset
-    for _ in range(hp):
-        pc.loop()
-        time.sleep(.05)
+    def cleanup(self):
+        self.logger.cleanup()
+        self.write_dac(0.)
+
+
+if __name__ == '__main__': 
+    th = Process(target=eavesdropper)
+    th.start()
+
+    pc = PIDController(7, "COM56")
+    wl = pc.set_wavelength
+    hp, offset = 50, 1e-4
+    while True:
+        pc.set_wavelength = wl + offset
+        for _ in range(hp):
+            pc.loop()
+            time.sleep(.05)
+        
+        pc.set_wavelength = wl - offset
+        for _ in range(hp):
+            pc.loop()
+            time.sleep(.05)
+
+        if not th.is_alive():
+            pc.cleanup()
+            print('Please input new PID parameters: Kp Ki Kd')
+            print('Current are %d, %d, %d' % (pc.kp, pc.ki, pc.kd))
+            kp, ki, kd = (float(_) for _ in input().split())
+            pc = PIDController(7, "COM56", kp=kp, ki=ki, kd=kd)
+            wl = pc.set_wavelength
+            th = Process(target=eavesdropper)
+            th.start()
+            
+        

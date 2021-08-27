@@ -17,6 +17,10 @@ class Logger():
         self.file.write(', '.join(str(_) for _ in line))
         self.file.write('\n')
         self.file.flush()
+    
+
+    def cleanup(self):
+        self.file.close()
 
 
 
