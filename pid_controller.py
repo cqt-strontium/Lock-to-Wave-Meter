@@ -9,7 +9,7 @@ from signal_test import eavesdropper, Process
 
 
 class PIDController():
-    def __init__(self, channel, port, wavelength=None, kp=-20., ki=-20., kd=-20., buffer_length=10):
+    def __init__(self, channel, port, wavelength=None, kp=-800., ki=-1000./1.2, kd=-10., buffer_length=10):
         self.kp = kp
         self.ki = ki
         self.kd = kd
@@ -27,7 +27,7 @@ class PIDController():
         self.setup_buffer()
         
 
-        self.logger = Logger(list(zip(self.time_buffer, self.error_buffer)), header=r'Target wavelength %.6f nm\nKp=%.1f, Ki=%.1f, Kd=%.1f\n$'%(self.set_wavelength, self.kp, self.ki, self.kd))
+        self.logger = Logger([],[],header='Target wavelength %.6f nm\nKp=%.1f, Ki=%.1f, Kd=%.1f\n'%(self.set_wavelength, self.kp, self.ki, self.kd))
     
 
     def setup_buffer(self):
@@ -38,6 +38,8 @@ class PIDController():
             error = self.read_wlm() - self.set_wavelength
             self.error_buffer.append(error)
             self.time_buffer.append(perf_counter())
+        
+        self.int = trapz(self.error_buffer, self.time_buffer)
 
     def read_wlm(self):
         '''
@@ -72,15 +74,15 @@ class PIDController():
         self.error_buffer.append(error)
         self.time_buffer.popleft()
         self.error_buffer.popleft()
+
+        self.int += .5 * (self.error_buffer[-1] + self.error_buffer[-2]) * (self.time_buffer[-1] + self.time_buffer[-2])
             
-        self.logger.log([self.time_buffer[-1], self.error_buffer[-1], self.kp * error, self.ki * trapz(self.error_buffer, self.time_buffer) /
-            (self.time_buffer[-1] - self.time_buffer[0]), self.kd * (self.error_buffer[-2] - self.error_buffer[-1]
+        self.logger.log([self.time_buffer[-1], self.error_buffer[-1], self.kp * error, self.ki * self.int, self.kd * (self.error_buffer[-2] - self.error_buffer[-1]
                          ) / (self.time_buffer[-2] - self.time_buffer[-1])])
         
         self.write_dac(
             self.kp * error
-            + self.ki * trapz(self.error_buffer, self.time_buffer) /
-            (self.time_buffer[-1] - self.time_buffer[0])
+            + self.ki * self.int
             + self.kd * (self.error_buffer[-2] - self.error_buffer[-1]
                          ) / (self.time_buffer[-2] - self.time_buffer[-1])
         )
@@ -89,21 +91,27 @@ class PIDController():
     def cleanup(self):
         self.logger.cleanup()
         self.write_dac(0.)
+        self.ser.close()
 
 
 if __name__ == '__main__': 
     th = Process(target=eavesdropper)
     th.start()
 
-    pc = PIDController(7, "COM56")
+    print('Please input new PID parameters: Kp Ki Kd')
+    kp, ki, kd = (float(_) for _ in input().split())
+    pc = PIDController(7, "COM56", kp=kp, ki=ki, kd=kd)
+    print('Current are %d, %d, %d' % (pc.kp, pc.ki, pc.kd))
     wl = pc.set_wavelength
-    hp, offset = 50, 1e-4
+    hp, offset = 200, 1e-4
     while True:
         pc.set_wavelength = wl + offset
+        # pc.loop()
+
         for _ in range(hp):
             pc.loop()
             time.sleep(.05)
-        
+
         pc.set_wavelength = wl - offset
         for _ in range(hp):
             pc.loop()
@@ -118,5 +126,3 @@ if __name__ == '__main__':
             wl = pc.set_wavelength
             th = Process(target=eavesdropper)
             th.start()
-            
-        
