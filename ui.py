@@ -6,6 +6,7 @@ Valid commands:
 2. STOP: pause lock
 3. TUNE: set PID gain and let set wavelength vary as step function 
 4. EXIT: exit program
+5. HELP: reveal this message
 """
 
 from multiprocessing import Process, Queue, freeze_support 
@@ -98,6 +99,9 @@ if __name__ == '__main__':
     cmd2func = dict(zip(['lock', 'tune', 'stop', 'exit'],[lock_mode,tune_mode, stop_mode, stop_mode]))
     while True: 
         cmd = input('Please input command:').strip().lower()
+        if cmd == 'help':
+            print(__doc__)
+            continue
         if cmd in cmd2func.keys():
             args = cmd2func[cmd]() 
 
