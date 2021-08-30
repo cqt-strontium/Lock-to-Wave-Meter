@@ -24,10 +24,15 @@ def tune_mode():
 
 
 def lock_mode():
-    wl = input('Please input wavelength set point:\n')
-    if wl:
-        wl = float(wl)
-
+    while True:
+        wl = input('Please input wavelength set point:\n')
+        if wl:
+            try:
+                wl = float(wl)
+            except:
+                continue
+            else:
+                break
     return wl, *tune_mode()
 
 
