@@ -77,14 +77,14 @@ class PIDController():
 
         self.int += .5 * (self.error_buffer[-1] + self.error_buffer[-2]) * (self.time_buffer[-1] - self.time_buffer[-2])
             
-        self.logger.log([self.time_buffer[-1], self.error_buffer[-1], self.kp * error, self.ki * self.int, self.kd * (self.error_buffer[-3] - self.error_buffer[-1]
-                         ) / (self.time_buffer[-3] - self.time_buffer[-1])])
+        self.logger.log([self.time_buffer[-1], self.error_buffer[-1], self.kp * error, self.ki * self.int, self.kd * (self.error_buffer[-2] - self.error_buffer[-1]
+                         ) / (self.time_buffer[-2] - self.time_buffer[-1])])
         
         self.write_dac(
             self.kp * error
             + self.ki * self.int
-            + self.kd * (self.error_buffer[-3] - self.error_buffer[-1]
-                         ) / (self.time_buffer[-3] - self.time_buffer[-1])
+            + self.kd * (self.error_buffer[-2] - self.error_buffer[-1]
+                         ) / (self.time_buffer[-2] - self.time_buffer[-1])
         )
 
 

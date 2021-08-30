@@ -26,13 +26,15 @@ def tune_mode():
 def lock_mode():
     while True:
         wl = input('Please input wavelength set point:\n')
-        if wl:
+        if len(wl):
             try:
                 wl = float(wl)
             except:
                 continue
             else:
                 break
+        else:
+            break
     return wl, *tune_mode()
 
 
@@ -62,7 +64,7 @@ def pid_tune(q, args):
                 pc.cleanup()
                 return 
 
-        pc.set_wavelength = wl - offset
+        pc.set_wavelength = wl + offset
         for _ in range(hp):
             pc.loop()
             time.sleep(.05)
@@ -95,7 +97,7 @@ if __name__ == '__main__':
 
     cmd2func = dict(zip(['lock', 'tune', 'stop', 'exit'],[lock_mode,tune_mode, stop_mode, stop_mode]))
     while True: 
-        cmd = input('Please input command:').split().lower()
+        cmd = input('Please input command:').strip().lower()
         if cmd in cmd2func.keys():
             args = cmd2func[cmd]() 
 
