@@ -35,8 +35,8 @@ def stop_mode():
     return ()
 
 
-def pid_lock(q, *args):
-    pc = PIDController(7, "COM56", args)
+def pid_lock(q, args):
+    pc = PIDController(7, "COM56", *args)
     while True:
         pc.loop()
         if not q.empty():
@@ -44,8 +44,8 @@ def pid_lock(q, *args):
             return 
 
 
-def pid_tune(q, *args):
-    pc = PIDController(7, "COM56",  None, args)
+def pid_tune(q, args):
+    pc = PIDController(7, "COM56",  None, *args)
     wl = pc.set_wavelength
     hp, offset = 200, 1e-4
     while True:        
@@ -66,7 +66,7 @@ def pid_tune(q, *args):
                 return 
                 
 
-def pid_pause(q, *args):
+def pid_pause(q, args):
     while q.empty(): 
         time.sleep(.05)
 
@@ -90,7 +90,7 @@ if __name__ == '__main__':
 
     cmd2func = dict(zip(['lock', 'tune', 'stop', 'exit'],[lock_mode,tune_mode, stop_mode, stop_mode]))
     while True: 
-        cmd = input('Please input command:').lower()
+        cmd = input('Please input command:').split().lower()
         if cmd in cmd2func.keys():
             args = cmd2func[cmd]() 
 
