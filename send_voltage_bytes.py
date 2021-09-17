@@ -28,6 +28,19 @@ def send_voltage(ser, voltage, readback=False):
             time.sleep(.02)  # hold on a while in case there's multiple lines coming 
 
 
+class CachedPort:
+    ports = {}
+    def __init__(self, func) -> None:
+        self.func = func
+        
+    def __call__(self, *args):
+        if args[0] in CachedPort.ports:
+            return CachedPort.ports[args[0]]
+        CachedPort.ports[args[0]] = self.func(*args)
+        return CachedPort.ports[args[0]]
+
+
+@CachedPort
 def setup_arduino_port(port, baud=115200, timeout=1):
     ser = serial.Serial(port, baud, timeout=timeout) 
     
@@ -42,10 +55,12 @@ def setup_arduino_port(port, baud=115200, timeout=1):
             if msg.find('Arduino') + 1: 
                 break
     return ser
-            
+           
+           
 
 if __name__ == '__main__': 
-    ser = setup_arduino_port('COM4')
+    ser = setup_arduino_port('COM3')
+    ser = setup_arduino_port('COM3')
     print('Arduino is ready. ')
     while True:
         send_voltage(ser, float(input('Input your voltage:')), True)
