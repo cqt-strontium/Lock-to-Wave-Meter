@@ -8,9 +8,9 @@ def get_msg(ser):
     return ser.read().decode('ansi') 
 
 
-def send_voltage(ser, voltage, readback=False): 
+def send_voltage(ser, voltage, sspin=10, readback=False): 
     '''
-    Send voltage (between -10 and +10) to Arduino through Serial object ser
+    Send voltage (between -3 and +3) to Arduino through Serial object ser
     '''
 
     number = int(voltage / 6. * 65535)
@@ -18,7 +18,8 @@ def send_voltage(ser, voltage, readback=False):
         number = 32767
     if number < -32768:
         number = -32768
-        
+
+    ser.write(sspin.to_bytes(1, 'big', signed=True))    
     ser.write(number.to_bytes(2, 'big', signed=True))
     
     if readback:
@@ -59,7 +60,6 @@ def setup_arduino_port(port, baud=115200, timeout=1):
            
 
 if __name__ == '__main__': 
-    ser = setup_arduino_port('COM3')
     ser = setup_arduino_port('COM3')
     print('Arduino is ready. ')
     while True:
