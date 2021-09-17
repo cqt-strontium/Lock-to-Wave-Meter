@@ -44,7 +44,7 @@ def stop_mode():
 
 
 def pid_lock(q, args):
-    pc = PIDController(7, "COM56", *args)
+    pc = PIDController(1, "COM56", 9, *args)
     while True:
         pc.loop()
         if not q.empty():
@@ -53,9 +53,9 @@ def pid_lock(q, args):
 
 
 def pid_tune(q, args):
-    pc = PIDController(7, "COM56",  None, *args)
+    pc = PIDController(1, "COM56", 9, None, *args)
     wl = pc.set_wavelength
-    hp, offset = 200, 1e-4
+    hp, offset = 100, 1e-4
     while True:        
         pc.set_wavelength = wl - offset
         for _ in range(hp):
@@ -96,7 +96,8 @@ if __name__ == '__main__':
     background = Process(target=backend, args=(cmd_queue,))
     background.start()
 
-    cmd2func = dict(zip(['lock', 'tune', 'stop', 'exit'],[lock_mode,tune_mode, stop_mode, stop_mode]))
+    cmd2func = dict(zip(['lock', 'tune', 'stop', 'exit', 'help'],[lock_mode,tune_mode, stop_mode, stop_mode, None]))
+
     while True: 
         cmd = input('Please input command:').strip().lower()
         if cmd == 'help':

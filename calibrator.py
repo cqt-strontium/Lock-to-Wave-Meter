@@ -24,6 +24,7 @@ def ls_reg(xarr, yarr):
 class Calibrator: 
     def __init__(self, write_dac, get_wl):
         self.write_dac = write_dac
+        self.get_wl = get_wl
         self.last_read = -1
 
     def read_wlm(self):
@@ -37,25 +38,16 @@ class Calibrator:
         return ret 
 
     
-    def calibrate(self, num=100, randomize=False, repeat=1):
+    def calibrate(self, num=100):
         v = np.linspace(-3,3,num)
         wl = []
 
-        if randomize:
-            rnd_index = list(range(len(v)))
-            shuffle(rnd_index)
-            v = v[rnd_index]
-            
         for voltage in v:
             self.write_dac(voltage)
-            time.sleep(.2)
+            time.sleep(.1)
             wl.append(self.read_wlm())
         
         wl = np.array(wl)
-
-        if randomize:
-            sorted_index = np.argsort(v)
-            v, wl = v[sorted_index], wl[sorted_index]
 
         self.fig, self.ax = plt.subplots(figsize=(4,3))
         self.ax.plot(v, wl, '+')

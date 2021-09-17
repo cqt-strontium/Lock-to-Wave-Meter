@@ -12,7 +12,7 @@ Valid commands:
 from multiprocessing import Process, Queue, freeze_support
 from pid_controller import PIDController
 import time
-from json_load import load_settings
+from json_load import load_settings, print_status
 
 
 def input_wl():
@@ -31,10 +31,10 @@ def input_wl():
 
 
 def lock_mode(arg):
-    if arg == 'all' or not arg:
+    if not arg or arg[0] == 'all':
         index = list(range(len(lasers)))
     else:
-        index = [int(arg)]
+        index = [int(_) for _ in arg]
     ret = []
     for i in index:
         laser = lasers[i]
@@ -49,17 +49,15 @@ def lock_mode(arg):
 
 
 def stop_mode(arg):
-    if arg == 'all' or not arg:
+    if not arg or arg[0] == 'all':
         index = list(range(len(lasers)))
     else:
-        index = [int(arg)]
+        index = [int(_) for _ in arg]
+        
     for i in index:
         lasers[i]['Locked'] = False
     return index, [()] * len(index)
 
-
-def list_status():
-    pass
 
 
 def backend(q):
@@ -67,7 +65,7 @@ def backend(q):
         while True:
             if not len(pcs):
                 time.sleep(.05)
-            for pc in pcs:
+            for pc in pcs.values():
                 pc.loop()
             if not q.empty():
                 return 
@@ -76,19 +74,17 @@ def backend(q):
     while True:
         if not q.empty():
             cmd, args = q.get()
-            print(cmd, args)
             laser_no = args[0]
             if cmd == 'lock':
                 if laser_no in pcs:
                     pcs[laser_no].cleanup()
                 pcs[laser_no] = PIDController(*args[1:])
             elif cmd == 'stop':
-                print('hhelo')
-                if laser_no in pcs:
+                if laser_no in pcs.values():
                     pcs[laser_no].cleanup()
                     del pcs[laser_no]
             else:
-                for pc in pcs:
+                for pc in pcs.values():
                     pc.cleanup()
                 return 
         pid_lock()
@@ -104,7 +100,7 @@ if __name__ == '__main__':
     background.start()
 
     cmd2func = dict(zip(['lock', 'stop', 'list', 'exit', 'help'], [
-                    lock_mode, stop_mode, list_status, stop_mode, None]))
+                    lock_mode, stop_mode, print_status, stop_mode, None]))
 
     while True:
         cmds = input('Please input command:').strip().lower().split()
@@ -114,6 +110,8 @@ if __name__ == '__main__':
         cmd, arg = cmds[0], cmds[1:]
         if cmd == 'help':
             print(__doc__)
+            continue
+        if cmd == 'list':
             continue
         if cmd in cmd2func.keys():
             for i, arg in zip(*cmd2func[cmd](arg)):

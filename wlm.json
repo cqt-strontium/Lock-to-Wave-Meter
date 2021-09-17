@@ -1,10 +1,10 @@
 {
-    "ArduinoPort": "COM3",
+    "ArduinoPort": "COM56",
     "Lasers": [
         {
             "Name": "Good old 707",
             "ArduinoPin": 9,
-            "WaveMeterChannel": 7, 
+            "WaveMeterChannel": 1, 
             "SetWaveLength": null,
             "Kp": -800.0,
             "Ki": -10000.0,
@@ -13,11 +13,11 @@
         {
             "Name": "New 679",
             "ArduinoPin": 10,
-            "WaveMeterChannel": -1, 
+            "WaveMeterChannel": 7, 
             "SetWaveLength": null,
             "Kp": -800.0,
             "Ki": -16000.0,
             "Kd": -0.75
         }
     ]
-}
+} 
