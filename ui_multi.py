@@ -2,11 +2,12 @@ __doc__ = """
 Easy interface for controller. 
 
 Valid commands: 
-1. LOCK <LASER_NO.>/[ALL] : set wavelength & PID gain and lock for laser <LASER_NO.>
-2. STOP <LASER_NO.>/[ALL] : pause lock for laser <LASER_NO.>
+1. LOCK <LASER_NO.>/[ALL] : set wavelength & PID gain and lock for laser <LASER_NO.>; default locks all lasers
+2. STOP <LASER_NO.>/[ALL] : pause lock for laser <LASER_NO.>; default stops all laser locks
 3. LIST : list laser lock status
-4. EXIT : exit program
-5. HELP : reveal this message
+4. CALI <LASER_NO.>[0] : calibrate wavelength -- current response for laser <LASER_NO.> at set current; default calibrate the first laser
+5. EXIT : exit program
+6. HELP : reveal this message
 """
 
 from multiprocessing import Process, Queue, freeze_support
@@ -30,34 +31,42 @@ def input_wl():
     return wl
 
 
-def lock_mode(arg):
+def get_index(arg):
     if not arg or arg[0] == 'all':
-        index = list(range(len(lasers)))
+        return list(range(len(lasers)))
     else:
-        index = [int(_) for _ in arg]
+        return [int(_) for _ in arg]
+
+
+def lock_mode(arg):
+    index = get_index(arg)
     ret = []
     for i in index:
         laser = lasers[i]
         if laser['WaveMeterChannel'] == -1:
-            print('Warning: No WaveMeterChannel specified, cannot lock laser %s.' % (laser['Name']))
+            print('Warning: No WaveMeterChannel specified, cannot lock laser %s.' % (
+                laser['Name']))
         laser['Locked'] = True
         ret.append((laser['WaveMeterChannel'], laser['ArduinoPort'], laser['ArduinoPin'],
-                   laser['SetWaveLength'] if laser['SetWaveLength'] != -1 else input_wl(),
+                   laser['SetWaveLength'] if laser['SetWaveLength'] != -
+                    1 else input_wl(),
                    laser['Kp'], laser['Ki'], laser['Kd']))
 
     return index, ret
 
 
 def stop_mode(arg):
-    if not arg or arg[0] == 'all':
-        index = list(range(len(lasers)))
-    else:
-        index = [int(_) for _ in arg]
-        
+    index = get_index(arg)
+
     for i in index:
         lasers[i]['Locked'] = False
     return index, [()] * len(index)
 
+
+def cali_mode(arg):
+    no = 0 if not arg else arg
+    laser = lasers[no]
+    return [no], [(laser['WaveMeterChannel'], laser['ArduinoPort'], laser['ArduinoPin'])]
 
 
 def backend(q):
@@ -68,7 +77,7 @@ def backend(q):
             for pc in pcs.values():
                 pc.loop()
             if not q.empty():
-                return 
+                return
 
     pcs = {}
     while True:
@@ -83,11 +92,18 @@ def backend(q):
                 if laser_no in pcs.values():
                     pcs[laser_no].cleanup()
                     del pcs[laser_no]
+            elif cmd == 'cali':
+                PIDController(*args[1:]).calibrate().cleanup()
             else:
                 for pc in pcs.values():
                     pc.cleanup()
-                return 
+                return
         pid_lock()
+
+
+def show_help():
+    print(__doc__)
+    return ()
 
 
 if __name__ == '__main__':
@@ -99,8 +115,8 @@ if __name__ == '__main__':
     background = Process(target=backend, args=(cmd_queue,))
     background.start()
 
-    cmd2func = dict(zip(['lock', 'stop', 'list', 'exit', 'help'], [
-                    lock_mode, stop_mode, print_status, stop_mode, None]))
+    cmd2func = dict(zip(['lock', 'stop', 'list', 'cali', 'exit', 'help'], [
+                    lock_mode, stop_mode, print_status, cali_mode, stop_mode, show_help]))
 
     while True:
         cmds = input('Please input command:').strip().lower().split()
@@ -108,18 +124,12 @@ if __name__ == '__main__':
             continue
 
         cmd, arg = cmds[0], cmds[1:]
-        if cmd == 'help':
-            print(__doc__)
-            continue
-        if cmd == 'list':
-            continue
+
         if cmd in cmd2func.keys():
             for i, arg in zip(*cmd2func[cmd](arg)):
                 cmd_queue.put((cmd, (i, *arg)))
             if cmd == 'exit':
                 break
-        elif not cmd:
-            continue
         else:
             print('Invalid command.')
             print('Valid commands are:%s' %

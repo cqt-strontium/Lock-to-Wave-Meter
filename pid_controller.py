@@ -1,3 +1,4 @@
+from calibrator import Calibrator
 import time
 from wlm import getWaveLength
 from collections import deque
@@ -94,6 +95,9 @@ class PIDController():
                          ) / (self.time_buffer[-2] - self.time_buffer[-1])
         )
 
+    def calibrate(self):
+        Calibrator(self.write_dac, self.get_wl).calibrate()
+        return self
 
     def cleanup(self):
         self.logger.cleanup()
