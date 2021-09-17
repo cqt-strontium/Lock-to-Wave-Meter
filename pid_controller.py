@@ -1,5 +1,5 @@
 import time
-from wlm import getWaveLengthAt
+from wlm import getWaveLength
 from collections import deque
 from time import perf_counter
 from send_voltage_bytes import send_voltage, setup_arduino_port
@@ -9,16 +9,19 @@ from signal_test import eavesdropper, Process
 
 
 class PIDController():
-    def __init__(self, channel, port, wavelength=None, kp=-800., ki=-1000./1.2, kd=-10., buffer_length=10):
+    get_wl = getWaveLength
+    
+    def __init__(self, channel, port, sspin=10, wavelength=None, kp=-800., ki=-1000./1.2, kd=-10., buffer_length=10):
         self.kp = kp
         self.ki = ki
         self.kd = kd
         self.channel = channel
         self.port = port
+        self.sspin = sspin
         
         self.ser = setup_arduino_port(port)
         
-        self.get_wl = getWaveLengthAt(channel)
+        self.get_wl = lambda : PIDController.get_wl()(channel)
         if not wavelength:
             wavelength = self.get_wl()
         self.set_wavelength = wavelength
@@ -60,7 +63,7 @@ class PIDController():
         '''
         Write to DAC device through Arduino 
         '''
-        send_voltage(self.ser, voltage)
+        send_voltage(self.ser, voltage, self.sspin)
 
 
 
@@ -95,7 +98,7 @@ class PIDController():
     def cleanup(self):
         self.logger.cleanup()
         self.write_dac(0.)
-        self.ser.close()
+        
 
 
 if __name__ == '__main__': 
