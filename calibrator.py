@@ -7,7 +7,7 @@ import numpy as np
 from matplotlib.widgets import Cursor
 import matplotlib.pyplot as plt 
 import matplotlib as mpl 
-from random import shuffle
+from tqdm import tqdm
 
 
 mpl.rc('font', size=6)  
@@ -42,11 +42,11 @@ class Calibrator:
         v = np.linspace(-3,3,num)
         wl = []
 
-        for voltage in v:
+        for voltage in tqdm(v):
             self.write_dac(voltage)
-            time.sleep(.1)
             wl.append(self.read_wlm())
-        
+        self.write_dac(0.)
+
         wl = np.array(wl)
 
         self.fig, self.ax = plt.subplots(figsize=(4,3))
@@ -76,6 +76,8 @@ class Calibrator:
         
         _ = add_cursor(self.fig, self.ax)
         plt.show()
+        if not vlines:
+            return -1, 1
         
         x1, x2 = vlines[-2].get_xdata()[0], vlines[-1].get_xdata()[0]
         if x1 > x2: 

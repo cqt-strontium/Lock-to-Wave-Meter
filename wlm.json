@@ -6,18 +6,18 @@
             "ArduinoPin": 9,
             "WaveMeterChannel": 1, 
             "SetWaveLength": null,
-            "Kp": -800.0,
-            "Ki": -10000.0,
-            "Kd": -0.5
+            "Kp": -320.0,
+            "Ki": -4000.0,
+            "Kd": -0.4
         },
         {
             "Name": "New 679",
             "ArduinoPin": 10,
             "WaveMeterChannel": 7, 
             "SetWaveLength": null,
-            "Kp": -800.0,
-            "Ki": -16000.0,
-            "Kd": -0.75
+            "Kp": -600.0,
+            "Ki": -10000.0,
+            "Kd": -1.2
         }
     ]
 } 

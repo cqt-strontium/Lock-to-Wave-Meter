@@ -64,7 +64,7 @@ def stop_mode(arg):
 
 
 def cali_mode(arg):
-    no = 0 if not arg else arg
+    no = 0 if not arg else int(arg[0])
     laser = lasers[no]
     return [no], [(laser['WaveMeterChannel'], laser['ArduinoPort'], laser['ArduinoPin'])]
 
@@ -101,7 +101,7 @@ def backend(q):
         pid_lock()
 
 
-def show_help():
+def show_help(arg):
     print(__doc__)
     return ()
 
@@ -124,7 +124,9 @@ if __name__ == '__main__':
             continue
 
         cmd, arg = cmds[0], cmds[1:]
-
+        if cmd == 'list':
+            arg = lasers
+            
         if cmd in cmd2func.keys():
             for i, arg in zip(*cmd2func[cmd](arg)):
                 cmd_queue.put((cmd, (i, *arg)))

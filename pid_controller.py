@@ -19,7 +19,7 @@ class PIDController():
         self.channel = channel
         self.port = port
         self.sspin = sspin
-        
+        print(self.sspin)
         self.ser = setup_arduino_port(port)
         
         self.get_wl = lambda : PIDController.get_wl()(channel)
