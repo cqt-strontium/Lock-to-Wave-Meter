@@ -14,6 +14,8 @@ def print_status(lasers):
 
     for i, laser in enumerate(lasers): 
         print('%-5s %-4i %-15s %-8d %-9d %-8.1e %-8.1e %-8.1e' % ('' if 'Locked' not in laser or not laser['Locked'] else '*', i, laser['Name'][:15], laser['ArduinoPin'], laser['WaveMeterChannel'], laser['Kp'], laser['Ki'], laser['Kd']))
+        
+    return ()
 
 def load_settings():
     settings = json.load(open('wlm.json'))
@@ -24,7 +26,9 @@ def load_settings():
     print('There are %d laser(s) to control:' % len(lasers))
 
     print_status(lasers)
-
+    
     for laser in lasers: 
-        laser['ArduinoPort'] = settings['ArduinoPort']
+        if 'ArduinoPort' not in laser:
+            laser['ArduinoPort'] = settings['ArduinoPort']
+            
     return settings, lasers
