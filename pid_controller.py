@@ -6,8 +6,6 @@ from time import perf_counter
 from send_voltage_bytes import send_voltage, setup_arduino_port
 from scipy.integrate import trapz
 from logger import Logger 
-from signal_test import eavesdropper, Process
-
 
 class PIDController():
     get_wl = getWaveLength
@@ -105,7 +103,8 @@ class PIDController():
         
 
 
-if __name__ == '__main__': 
+if __name__ == '__main__':   
+    from signal_test import eavesdropper, Process
     th = Process(target=eavesdropper)
     th.start()
 

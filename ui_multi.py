@@ -1,6 +1,5 @@
 __doc__ = """
 Easy interface for controller. 
-
 Valid commands: 
 1. LOCK <LASER_NO.>/[ALL] : set wavelength & PID gain and lock for laser <LASER_NO.>; default locks all lasers
 2. STOP <LASER_NO.>/[ALL] : pause lock for laser <LASER_NO.>; default stops all laser locks
@@ -8,6 +7,7 @@ Valid commands:
 4. CALI <LASER_NO.>[0] : calibrate wavelength -- current response for laser <LASER_NO.> at set current; default calibrate the first laser
 5. EXIT : exit program
 6. HELP : reveal this message
+7. SPUP <LASER_NO.>[0]: update the setpoint wavelength. example: spup 1 will update laser No.1 in the list
 """
 
 from multiprocessing import Process, Queue, freeze_support
@@ -62,12 +62,20 @@ def stop_mode(arg):
         lasers[i]['Locked'] = False
     return index, [()] * len(index)
 
-
 def cali_mode(arg):
     no = 0 if not arg else int(arg[0])
     laser = lasers[no]
     return [no], [(laser['WaveMeterChannel'], laser['ArduinoPort'], laser['ArduinoPin'])]
 
+def spup_mode(arg):
+    index = get_index(arg)
+    ret = []
+    for i in index:
+        laser = lasers[i]
+        ret.append((laser['SetWaveLength'] if laser['SetWaveLength'] != -
+                    1 else input_wl(),))
+
+    return index, ret
 
 def backend(q):
     def pid_lock():
@@ -88,11 +96,14 @@ def backend(q):
                 if laser_no in pcs:
                     pcs[laser_no].cleanup()
                 pcs[laser_no] = PIDController(*args[1:])
+            elif cmd == 'spup':
+                if laser_no in pcs:
+                    pcs[laser_no].set_wavelength = args[1] 
             elif cmd == 'stop':
-                if laser_no in pcs.values():
+                if laser_no in pcs:
                     pcs[laser_no].cleanup()
                     del pcs[laser_no]
-            elif cmd == 'cali':
+            elif cmd == 'cali': 
                 PIDController(*args[1:]).calibrate().cleanup()
             else:
                 for pc in pcs.values():
@@ -115,8 +126,8 @@ if __name__ == '__main__':
     background = Process(target=backend, args=(cmd_queue,))
     background.start()
 
-    cmd2func = dict(zip(['lock', 'stop', 'list', 'cali', 'exit', 'help'], [
-                    lock_mode, stop_mode, print_status, cali_mode, stop_mode, show_help]))
+    cmd2func = dict(zip(['lock', 'stop', 'list', 'cali', 'exit', 'help', 'spup'], [
+                    lock_mode, stop_mode, print_status, cali_mode, stop_mode, show_help, spup_mode]))
 
     while True:
         cmds = input('Please input command:').strip().lower().split()
@@ -124,9 +135,10 @@ if __name__ == '__main__':
             continue
 
         cmd, arg = cmds[0], cmds[1:]
+        if cmd == 'spup':
+            _, lasers = load_settings(suppress_output=True)
         if cmd == 'list':
             arg = lasers
-            
         if cmd in cmd2func.keys():
             for i, arg in zip(*cmd2func[cmd](arg)):
                 cmd_queue.put((cmd, (i, *arg)))

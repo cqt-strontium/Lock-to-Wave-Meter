@@ -1,6 +1,5 @@
 __doc__ = """
 Easy interface for controller. 
-
 Valid commands: 
 1. LOCK: set wavelength & PID gain and lock
 2. STOP: pause lock
@@ -44,7 +43,7 @@ def stop_mode():
 
 
 def pid_lock(q, args):
-    pc = PIDController(1, "COM56", 9, *args)
+    pc = PIDController(6, "COM7", 10, *args)
     while True:
         pc.loop()
         if not q.empty():
@@ -53,9 +52,9 @@ def pid_lock(q, args):
 
 
 def pid_tune(q, args):
-    pc = PIDController(1, "COM56", 9, None, *args)
+    pc = PIDController(6, "COM7", 10, None, *args)
     wl = pc.set_wavelength
-    hp, offset = 100, 1e-4
+    hp, offset = 50, 1e-4
     while True:        
         pc.set_wavelength = wl - offset
         for _ in range(hp):
@@ -64,7 +63,6 @@ def pid_tune(q, args):
             if not q.empty():
                 pc.cleanup()
                 return 
-
         pc.set_wavelength = wl + offset
         for _ in range(hp):
             pc.loop()
@@ -116,4 +114,3 @@ if __name__ == '__main__':
             print('Valid commands are:%s'%(', '.join(cmd2func.keys())), end='.\n')
     
     background.join()  # wait for the clean-up process
-    
