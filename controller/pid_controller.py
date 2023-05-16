@@ -1,11 +1,11 @@
-from controller.calibrator import Calibrator
-import time
+from calibrator import Calibrator
 from util.wlm import getWaveLength
 from collections import deque
 from time import perf_counter
-from util.send_voltage_bytes import send_voltage, setup_arduino_port
+from util.send_voltage_bytes import setup_arduino_port
 from scipy.integrate import trapz
 from util.logger import Logger 
+
 
 class PIDController():
     get_wl = getWaveLength
@@ -17,8 +17,8 @@ class PIDController():
         self.channel = channel
         self.port = port
         self.sspin = sspin
-        print(self.sspin)
-        self.ser = setup_arduino_port(port)
+
+        self.ser = setup_arduino_port(port, 115200)
         
         self.get_wl = lambda : PIDController.get_wl()(channel)
         if not wavelength:
@@ -62,8 +62,10 @@ class PIDController():
         '''
         Write to DAC device through Arduino 
         '''
-        send_voltage(self.ser, voltage, self.sspin)
-
+        num = int(voltage / 6. * 65535)
+        num = min(max(num, -32768), 32767)
+        # self.ser.write(self.sspin.to_bytes(1, 'little'))
+        self.ser.write(num.to_bytes(2, 'big', signed=True))
 
 
     def loop(self):
@@ -100,39 +102,3 @@ class PIDController():
     def cleanup(self):
         self.logger.cleanup()
         self.write_dac(0.)
-        
-
-
-if __name__ == '__main__':   
-    from signal_test import eavesdropper, Process
-    th = Process(target=eavesdropper)
-    th.start()
-
-    print('Please input new PID parameters: Kp Ki Kd')
-    kp, ki, kd = (float(_) for _ in input().split())
-    pc = PIDController(7, "COM56", kp=kp, ki=ki, kd=kd)
-    print('Current are %d, %d, %d' % (pc.kp, pc.ki, pc.kd))
-    wl = pc.set_wavelength
-    hp, offset = 200, 1e-4
-    while True:
-        pc.set_wavelength = wl + offset
-        # pc.loop()
-
-        for _ in range(hp):
-            pc.loop()
-            time.sleep(.05)
-
-        pc.set_wavelength = wl - offset
-        for _ in range(hp):
-            pc.loop()
-            time.sleep(.05)
-
-        if not th.is_alive():
-            pc.cleanup()
-            print('Please input new PID parameters: Kp Ki Kd')
-            print('Current are %d, %d, %d' % (pc.kp, pc.ki, pc.kd))
-            kp, ki, kd = (float(_) for _ in input().split())
-            pc = PIDController(7, "COM56", kp=kp, ki=ki, kd=kd)
-            wl = pc.set_wavelength
-            th = Process(target=eavesdropper)
-            th.start()
