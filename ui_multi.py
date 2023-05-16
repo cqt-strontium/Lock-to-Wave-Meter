@@ -11,9 +11,9 @@ Valid commands:
 """
 
 from multiprocessing import Process, Queue, freeze_support
-from pid_controller import PIDController
+from controller.pid_controller import PIDController
 import time
-from json_load import load_settings, print_status
+from util.json_load import load_settings, print_status
 
 
 def input_wl():

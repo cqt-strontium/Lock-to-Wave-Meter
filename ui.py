@@ -9,7 +9,7 @@ Valid commands:
 """
 
 from multiprocessing import Process, Queue, freeze_support 
-from pid_controller import PIDController
+from controller.pid_controller import PIDController
 import time 
 
 
