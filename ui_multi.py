@@ -9,10 +9,10 @@ Valid commands:
 6. HELP : reveal this message
 """
 
-from multiprocessing import Process, Queue, freeze_support
+from queue import Queue 
 from controller.pid_controller import PIDController
-import time
 from util.json_load import load_settings, print_status
+import asyncio 
 
 
 def input_wl():
@@ -67,16 +67,15 @@ def cali_mode(arg):
     return [no], [(laser['WaveMeterChannel'], laser['ArduinoPort'], laser['ArduinoPin'])]
 
 
-def backend(q):
-    def pid_lock():
+async def backend(q):
+    async def pid_lock():
         while True:
-            if not len(pcs):
-                time.sleep(.05)
             for pc in pcs.values():
                 pc.loop()
             if not q.empty():
                 return
-
+            await asyncio.sleep(.1)
+            
     pcs = {}
     while True:
         if not q.empty():
@@ -96,7 +95,7 @@ def backend(q):
                 for pc in pcs.values():
                     pc.cleanup()
                 return
-        pid_lock()
+        await pid_lock()
 
 
 def show_help(arg):
@@ -104,20 +103,16 @@ def show_help(arg):
     return ()
 
 
-if __name__ == '__main__':
-    freeze_support()
-
-    _, lasers = load_settings()
-
-    cmd_queue = Queue()
-    background = Process(target=backend, args=(cmd_queue,))
-    background.start()
-
+async def main():
     cmd2func = dict(zip(['lock', 'stop', 'list', 'cali', 'exit', 'help'], [
                     lock_mode, stop_mode, print_status, cali_mode, stop_mode, show_help]))
 
+    cmd_queue = Queue()
+    task = asyncio.create_task(backend(cmd_queue))
+
     while True:
-        cmds = input('Please input command:').strip().lower().split()
+        raw = await asyncio.get_event_loop().run_in_executor(None, input, 'Please input command:')
+        cmds = raw.strip().lower().split()
         if not cmds:
             continue
 
@@ -133,5 +128,7 @@ if __name__ == '__main__':
             print('Invalid command.')
             print('Valid commands are:%s' %
                   (', '.join(cmd2func.keys())), end='.\n')
+    task.cancel()
 
-    background.join()  # wait for the clean-up process
+_, lasers = load_settings()
+asyncio.run(main())

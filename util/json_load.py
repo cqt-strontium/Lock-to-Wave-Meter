@@ -1,5 +1,8 @@
 import json 
+import os.path
+from functools import partial 
 
+print = partial(print, flush=True)
 def fill_missing_attr(laser_arr):
     attrs = ['ArduinoPin', 'WaveMeterChannel', 'SetWaveLength', 'Kp', 'Ki', 'Kd']
     default_value = dict(zip(attrs, [-1, -1, -1, 0, 0, 0]))
@@ -17,7 +20,10 @@ def print_status(lasers):
     return ()
 
 def load_settings(suppress_output=False):
-    settings = json.load(open('wlm.json'))
+    dirname = os.path.dirname(__file__) 
+    parent = os.path.dirname(dirname)
+    settings = json.load(open(os.path.join(parent, 'wlm.json')))
+    print(os.path.join(parent, 'wlm.json'))
     if not suppress_output:
         print('Arduino is at port %s.' % settings['ArduinoPort'])
     lasers = settings['Lasers']

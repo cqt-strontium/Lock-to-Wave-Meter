@@ -84,7 +84,7 @@ class PIDController():
         # reset the integral if it becomes too large (due to fiber/wave meter glitches)
         if abs(self.int * self.ki) > 3.:  
             self.int = 0.
-
+        print(f'{self.channel}: {self.error_buffer[-1]}')
         self.logger.log([self.time_buffer[-1], self.error_buffer[-1], self.kp * error, self.ki * self.int, self.kd * (self.error_buffer[-2] - self.error_buffer[-1]
                          ) / (self.time_buffer[-2] - self.time_buffer[-1])])
         
