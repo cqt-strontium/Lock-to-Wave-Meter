@@ -1,4 +1,4 @@
-from calibrator import Calibrator
+from .calibrator import Calibrator
 from util.wlm import getWaveLength
 from collections import deque
 from time import perf_counter
