@@ -5,7 +5,8 @@ from time import perf_counter
 from util.send_voltage_bytes import setup_arduino_port
 from scipy.integrate import trapz
 from util.logger import Logger 
-
+from functools import partial 
+print = partial(print, flush=True)
 
 class PIDController():
     get_wl = getWaveLength
