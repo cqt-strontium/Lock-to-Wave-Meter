@@ -1,11 +1,12 @@
-from calibrator import Calibrator
+from .calibrator import Calibrator
 from util.wlm import getWaveLength
 from collections import deque
 from time import perf_counter
 from util.send_voltage_bytes import setup_arduino_port
 from scipy.integrate import trapz
 from util.logger import Logger 
-
+from functools import partial 
+print = partial(print, flush=True)
 
 class PIDController():
     get_wl = getWaveLength
@@ -29,7 +30,7 @@ class PIDController():
         self.setup_buffer()
         
 
-        self.logger = Logger([],[],header='Target wavelength %.6f nm\nKp=%.1f, Ki=%.2f, Kd=%.2f\n'%(self.set_wavelength, self.kp, self.ki, self.kd))
+        self.logger = Logger([],header='Target wavelength %.6f nm\nKp=%.1f, Ki=%.2f, Kd=%.2f\n'%(self.set_wavelength, self.kp, self.ki, self.kd), fname='log%d.txt'%channel)
     
 
     def setup_buffer(self):
@@ -84,8 +85,7 @@ class PIDController():
         # reset the integral if it becomes too large (due to fiber/wave meter glitches)
         if abs(self.int * self.ki) > 3.:  
             self.int = 0.
-
-        self.logger.log([self.time_buffer[-1], self.error_buffer[-1], self.kp * error, self.ki * self.int, self.kd * (self.error_buffer[-2] - self.error_buffer[-1]
+        self.logger.log([self.channel, self.time_buffer[-1], self.error_buffer[-1], self.kp * error, self.ki * self.int, self.kd * (self.error_buffer[-2] - self.error_buffer[-1]
                          ) / (self.time_buffer[-2] - self.time_buffer[-1])])
         
         self.write_dac(
