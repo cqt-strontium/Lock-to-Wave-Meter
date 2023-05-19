@@ -5,7 +5,7 @@ class Logger():
         if not fname:
             fname = 'log@%s.txt'%time.strftime("%Y-%m-%d-%H%M%S", time.localtime())
 
-        self.file = open(fname, 'w')
+        self.file = open(fname, 'w', buffering=1)
 
         if header:
             self.file.write(header)
@@ -15,8 +15,7 @@ class Logger():
                 self.log(line)
 
     def log(self, line):
-        self.file.write(', '.join(str(_) for _ in line))
-        self.file.write('\n')
+        self.file.write(', '.join(str(_) for _ in line) + '\n')
         self.file.flush()
 
 
