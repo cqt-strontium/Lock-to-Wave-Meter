@@ -74,7 +74,7 @@ async def backend(q):
                 pc.loop()
             if not q.empty():
                 return
-            await asyncio.sleep(.1)
+            await asyncio.sleep(0)
             
     pcs = {}
     while True:
