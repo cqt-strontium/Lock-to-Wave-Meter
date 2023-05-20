@@ -25,9 +25,8 @@ def load_settings(fname=None, suppress_output=False):
         parent = os.path.dirname(dirname)
         settings = json.load(open(os.path.join(parent, 'wlm.json')))
     else:
-        settings = json.load(fname)
+        settings = json.load(open(fname))
         
-    print(os.path.join(parent, 'wlm.json'))
     if not suppress_output:
         print('Arduino is at port %s.' % settings['ArduinoPort'])
     lasers = settings['Lasers']

@@ -138,6 +138,7 @@ async def main():
 setting_fname = None
 if len(sys.argv) == 2:
     setting_fname = sys.argv[1]
+    print(setting_fname)
     if not os.path.exists(setting_fname):
         raise FileNotFoundError(
             f"Cannot find settings file at {setting_fname}!")
