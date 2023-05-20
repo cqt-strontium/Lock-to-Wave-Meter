@@ -43,18 +43,21 @@ class CachedPort:
 
 @CachedPort
 def setup_arduino_port(port, baud=115200, timeout=1):
-    ser = serial.Serial(port, baud, timeout=timeout) 
-    
+    # keep Arduino from reset 
+    ser = serial.Serial(baudrate=baud, timeout=timeout) 
+    ser.dtr = False 
+    ser.port = port 
+    ser.open()
     # Arduino will send back "Arduino setup finished!" once it's all set
-    while True: 
-        msg = get_line_msg(ser)
-        if not msg.strip():
-            time.sleep(1)
-        else:   
-            if msg.find('Control') + 1: 
-                print(msg.strip())
-            if msg.find('Arduino') + 1: 
-                break
+    # while True: 
+    #     msg = get_line_msg(ser)
+    #     if not msg.strip():
+    #         time.sleep(.1)
+    #     else:   
+    #         if msg.find('Control') + 1: 
+    #             print(msg.strip())
+    #         if msg.find('Arduino') + 1: 
+    #             break
     return ser
            
            

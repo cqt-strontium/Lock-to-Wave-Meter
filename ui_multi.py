@@ -9,11 +9,11 @@ Valid commands:
 6. HELP : reveal this message
 """
 
+from typing import Dict
 from queue import Queue 
 from controller.pid_controller import PIDController
 from util.json_load import load_settings, print_status
 import asyncio 
-
 
 def input_wl():
     while True:
@@ -74,9 +74,9 @@ async def backend(q):
                 pc.loop()
             if not q.empty():
                 return
-            await asyncio.sleep(.1)
+            await asyncio.sleep(0)
             
-    pcs = {}
+    pcs: Dict[int, PIDController] = {}
     while True:
         if not q.empty():
             cmd, args = q.get()
