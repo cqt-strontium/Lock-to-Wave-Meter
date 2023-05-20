@@ -1,3 +1,5 @@
+import os.path
+import sys
 __doc__ = """
 Easy interface for controller. 
 Valid commands: 
@@ -10,10 +12,11 @@ Valid commands:
 """
 
 from typing import Dict
-from queue import Queue 
+from queue import Queue
 from controller.pid_controller import PIDController
 from util.json_load import load_settings, print_status
-import asyncio 
+import asyncio
+
 
 def input_wl():
     while True:
@@ -61,6 +64,7 @@ def stop_mode(arg):
         lasers[i]['Locked'] = False
     return index, [()] * len(index)
 
+
 def cali_mode(arg):
     no = 0 if not arg else int(arg[0])
     laser = lasers[no]
@@ -75,7 +79,7 @@ async def backend(q):
             if not q.empty():
                 return
             await asyncio.sleep(0)
-            
+
     pcs: Dict[int, PIDController] = {}
     while True:
         if not q.empty():
@@ -89,7 +93,7 @@ async def backend(q):
                 if laser_no in pcs:
                     pcs[laser_no].cleanup()
                     del pcs[laser_no]
-            elif cmd == 'cali': 
+            elif cmd == 'cali':
                 PIDController(*args[1:]).calibrate().cleanup()
             else:
                 for pc in pcs.values():
@@ -130,5 +134,15 @@ async def main():
                   (', '.join(cmd2func.keys())), end='.\n')
     task.cancel()
 
-_, lasers = load_settings()
+
+setting_fname = None
+if len(sys.argv) == 2:
+    setting_fname = sys.argv[1]
+    if not os.path.exists(setting_fname):
+        raise FileNotFoundError(
+            f"Cannot find settings file at {setting_fname}!")
+elif len(sys.argv) > 2:
+    raise RuntimeError(
+        "Too many input arguments; only one is allowed for settings file name!")
+_, lasers = load_settings(fname=setting_fname)
 asyncio.run(main())

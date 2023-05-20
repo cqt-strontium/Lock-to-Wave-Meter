@@ -19,10 +19,14 @@ def print_status(lasers):
         print('%-5s %-4i %-15s %-8d %-9d %-8.1e %-8.1e %-8.1e' % ('' if 'Locked' not in laser or not laser['Locked'] else '*', i, laser['Name'][:15], laser['ArduinoPin'], laser['WaveMeterChannel'], laser['Kp'], laser['Ki'], laser['Kd']))
     return ()
 
-def load_settings(suppress_output=False):
-    dirname = os.path.dirname(__file__) 
-    parent = os.path.dirname(dirname)
-    settings = json.load(open(os.path.join(parent, 'wlm.json')))
+def load_settings(fname=None, suppress_output=False):
+    if fname is None:
+        dirname = os.path.dirname(__file__) 
+        parent = os.path.dirname(dirname)
+        settings = json.load(open(os.path.join(parent, 'wlm.json')))
+    else:
+        settings = json.load(fname)
+        
     print(os.path.join(parent, 'wlm.json'))
     if not suppress_output:
         print('Arduino is at port %s.' % settings['ArduinoPort'])
